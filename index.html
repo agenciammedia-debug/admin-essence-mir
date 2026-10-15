@@ -15,6 +15,33 @@
 </style>
 </head>
 <body>
-  <iframe src="https://script.google.com/macros/s/AKfycby2Mu2fJ07Cm9dH_xuJ54Sn6n4uyP2vO_t7ZzSXzdU8ueg-VRjRc3DyZtxwDZNSGGti2w/exec"></iframe>
+  <iframe allow="screen-wake-lock; autoplay" src="https://script.google.com/macros/s/AKfycby2Mu2fJ07Cm9dH_xuJ54Sn6n4uyP2vO_t7ZzSXzdU8ueg-VRjRc3DyZtxwDZNSGGti2w/exec"></iframe>
+
+<script>
+  // Mantiene la pantalla encendida mientras haya un refrigerio en curso (lo pide la app interna).
+  let lock = null, quiere = false;
+
+  async function pantalla(on) {
+    try {
+      if (on && !lock && 'wakeLock' in navigator) {
+        lock = await navigator.wakeLock.request('screen');
+        lock.addEventListener('release', () => { lock = null; });
+      } else if (!on && lock) {
+        await lock.release(); lock = null;
+      }
+    } catch (e) {}
+  }
+
+  window.addEventListener('message', e => {
+    let host = '';
+    try { host = new URL(e.origin).hostname; } catch (_) {}
+    if (!/(^|\.)googleusercontent\.com$/.test(host) && host !== 'script.google.com') return;
+    if (e.data && e.data.type === 'essence-wake') { quiere = !!e.data.on; pantalla(quiere); }
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && quiere) pantalla(true);
+  });
+</script>
 </body>
 </html>
